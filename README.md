@@ -102,31 +102,17 @@ Values transcribed from the uploaded `compare_sync` terminal screenshot. Executi
 
 ## 8. Graphs
 
-Both graphs are defined directly in this README using Mermaid; no separate graph folder is needed.
+### 8.1 Execution Time vs Number of Threads
 
-### 8.1 Execution Time Comparison
+This graph compares the execution time of the four synchronization approaches.
 
-```mermaid
-xychart-beta
-    title "Execution time by mechanism and thread count"
-    x-axis ["None-1", "Critical-1", "Atomic-1", "Lock-1", "None-2", "Critical-2", "Atomic-2", "Lock-2", "None-4", "Critical-4", "Atomic-4", "Lock-4", "None-8", "Critical-8", "Atomic-8", "Lock-8"]
-    y-axis "Time (seconds)" 0 --> 0.35
-    bar [0.0224, 0.1599, 0.0823, 0.1582, 0.0170, 0.3158, 0.0999, 0.2951, 0.0132, 0.3291, 0.1242, 0.3241, 0.0149, 0.2379, 0.0974, 0.3132]
-```
+![Execution Time Comparison](screenshots/execution_time.png)
 
-### 8.2 Execution Time of Synchronized Mechanisms
+### 8.2 Final Counter Value vs Number of Threads
 
-```mermaid
-xychart-beta
-    title "Execution time by thread count"
-    x-axis ["1 thread", "2 threads", "4 threads", "8 threads"]
-    y-axis "Time (seconds)" 0 --> 0.35
-    line [0.1599, 0.3158, 0.3291, 0.2379]
-    line [0.0823, 0.0999, 0.1242, 0.0974]
-    line [0.1582, 0.2951, 0.3241, 0.3132]
-```
+This graph compares the final counter values and demonstrates the effect of race conditions.
 
-Series order in the second graph: Critical, Atomic, Lock.
+![Final Counter Comparison](screenshots/final_counter.png)
 
 ## 9. Observations
 1. Without synchronization, the final counter is incorrect when multiple threads update the shared variable.
@@ -138,11 +124,5 @@ Series order in the second graph: Critical, Atomic, Lock.
 ## 10. Conclusion
 The experiment demonstrates that synchronization is necessary when multiple threads access and modify shared data. The race condition produced incorrect results, while the tested synchronization mechanisms maintained the expected final count. In this recorded benchmark, the atomic operation had the lowest execution time among the correct synchronized approaches.
 
-## 11. Screenshot Files
-All six terminal screenshots are stored in `screenshots/`:
-- `race.png`
-- `critical.png`
-- `atomic.png`
-- `barrier.png`
-- `semaphore.png`
-- `compare_sync.png`
+## Author
+Vandana A M
