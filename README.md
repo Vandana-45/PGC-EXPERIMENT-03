@@ -1,212 +1,148 @@
-# Performance Analysis of Virtual Machines and Containers
-
-## 1. Objective
-
-To compare the performance of a Virtual Machine (VM) and a Docker container using CPU, memory, disk, network, and application-level benchmarks.
-
-## 2. Experimental Environment
-
-| Component          | Configuration      |
-| ------------------ | ------------------ |
-| Host OS            | Windows            |
-| Hypervisor         | VMware Workstation |
-| Guest OS           | Ubuntu 26.04.1 LTS |
-| VM CPU             | 2 vCPUs            |
-| VM Memory          | 3.27 GiB           |
-| VM Disk            | 20 GB              |
-| Container Platform | Docker 29.1.3      |
-| CPU Benchmark      | Sysbench           |
-| Memory Benchmark   | Sysbench           |
-| Disk Benchmark     | fio                |
-| Network Benchmark  | iperf3             |
-| API Benchmark      | ApacheBench (ab)   |
-| API Framework      | FastAPI + Uvicorn  |
-
-## 3. Methodology
-
-The same VM environment was used for both VM-side and container-side testing wherever applicable.
-
-Multiple runs were performed for CPU, memory, and disk benchmarks. The average performance was calculated from the valid runs.
-
-The API benchmark used 10,000 requests with concurrency 100 for the `/health` endpoint and 1,000 requests with concurrency 10 for the `/compute` endpoint.
-
-## 4. Results
-
-| Benchmark | Metric       |       VM |   Docker |
-| --------- | ------------ | -------: | -------: |
-| CPU       | Events/sec   |  1668.10 |  1751.35 |
-| Memory    | MiB/sec      | 23629.16 | 11496.33 |
-| Disk      | MiB/sec      |   449.60 |   553.20 |
-| Network   | Gbits/sec    |     44.0 |     40.5 |
-| API       | Requests/sec |  3130.57 |  1818.79 |
-
-## 5. CPU Performance
-
-The CPU benchmark was performed using Sysbench with 2 threads and a 30-second test duration.
-
-The average results were:
-
-* VM: 1668.10 events/sec
-* Docker: 1751.35 events/sec
-
-The Docker container produced a slightly higher average CPU throughput in this experiment.
-
-Graph:
-
-![CPU Comparison](results/graphs/cpu_comparison.png)
-
-## 6. CPU Scalability
-
-CPU scalability was evaluated by increasing the number of CPU threads from 1 to 4.
-
-| Threads | VM (events/sec) | Docker (events/sec) |
-| ------: | --------------: | ------------------: |
-|       1 |         1001.01 |             1267.42 |
-|       2 |         1661.66 |             1178.51 |
-|       4 |         1563.64 |             1778.05 |
-
-The results show that CPU throughput does not increase linearly with thread count. The VM has 2 vCPUs, so the 4-thread test introduces thread oversubscription.
-
-Graph:
-
-![CPU Scalability](results/graphs/cpu_scalability.png)
-
-## 7. Memory Performance
-
-The memory benchmark used a 1 MiB block size, 2 GiB total operation size, and 2 threads.
-
-Average results:
-
-* VM: 23629.16 MiB/sec
-* Docker: 11496.33 MiB/sec
-
-The VM produced higher memory throughput in this experiment.
-
-Graph:
-
-![Memory Comparison](results/graphs/memory_comparison.png)
-
-## 8. Disk Performance
-
-The sequential write benchmark used fio with a 1 GiB test file, 1 MiB block size, direct I/O, and a 30-second test.
-
-Average valid results:
-
-* VM: 449.60 MiB/sec
-* Docker: 553.20 MiB/sec
-
-One VM disk run produced an unusually low result and lasted significantly longer than the other runs. It was treated as an anomalous run and excluded from the representative average; the original raw result is retained in `results/raw/disk/vm/`.
-
-Graph:
-
-![Disk Comparison](results/graphs/disk_comparison.png)
-
-## 9. Network Performance
-
-The iperf3 benchmark was performed for 30 seconds.
-
-Results:
-
-* VM: 44.0 Gbits/sec
-* Docker: 40.5 Gbits/sec
-
-The Docker test used the Docker bridge network, which resulted in a different networking path from the VM-side test.
-
-This is a local VM-interface benchmark and does not represent Internet bandwidth.
-
-Graph:
-
-![Network Comparison](results/graphs/network_comparison.png)
-
-## 10. API Performance
-
-FastAPI was tested using ApacheBench.
-
-The `/health` endpoint used:
-
-* 10,000 requests
-* Concurrency: 100
-
-The `/compute` endpoint used:
-
-* 1,000 requests
-* Concurrency: 10
-
-The final API comparison value represents the combined result of the two API benchmark measurements.
-
-Graph:
-
-![API Comparison](results/graphs/api_comparison.png)
-
-Raw API results are stored in:
-
-`results/raw/api/`
-
-## 11. API Scalability
-
-API scalability was evaluated using ApacheBench with the `/health` endpoint and 1,000 total requests at different concurrency levels.
-
-| Concurrency | VM (requests/sec) | Docker (requests/sec) |
-| ----------: | ----------------: | --------------------: |
-|           1 |           1332.04 |                638.18 |
-|          10 |           1521.87 |               1443.35 |
-|          50 |           1352.61 |               1758.26 |
-|         100 |           1387.78 |               2006.91 |
-
-The results show that API throughput changes with increasing concurrency. In this experiment, Docker achieved higher throughput at the higher concurrency levels.
-
-Graph:
-
-![API Scalability](results/graphs/api_scalability.png)
-
-Raw scalability results are stored in:
-
-`results/raw/api_scalability/`
-
-## 12. Project Structure
-
-```text
-vm-vs-container-performance/
-├── api/
-│   ├── Dockerfile
-│   ├── main.py
-│   └── requirements.txt
-│
-├── docker/
-│   └── Dockerfile
-│
-├── results/
-│   ├── graphs/
-│   │   ├── api_comparison.png
-│   │   ├── api_scalability.png
-│   │   ├── cpu_comparison.png
-│   │   ├── cpu_scalability.png
-│   │   ├── disk_comparison.png
-│   │   ├── memory_comparison.png
-│   │   └── network_comparison.png
-│   │
-│   ├── processed/
-│   │   └── api_scalability.csv
-│   │
-│   └── raw/
-│       ├── api/
-│       ├── api_scalability/
-│       ├── cpu/
-│       ├── cpu_scalability/
-│       ├── disk/
-│       ├── memory/
-│       └── network/
-│
-├── .gitignore
-└── README.md
+# PGC Experiment: Synchronization Mechanisms in Parallel Programs
+
+## 1. Overview
+This experiment demonstrates synchronization mechanisms used in parallel programs and compares their correctness and execution time.
+
+## 2. Objectives
+1. Observe how a race condition affects a shared counter.
+2. Use synchronization mechanisms to protect shared data.
+3. Verify whether each method produces the expected final count.
+4. Compare execution times for different thread counts.
+
+## 3. Software Requirements
+- Ubuntu Linux
+- GCC compiler
+- OpenMP and POSIX thread support as required by the source programs
+
+## 4. Source Programs
+
+| File | Purpose |
+|---|---|
+| `race.c` | Demonstrates a race condition without synchronization |
+| `critical.c` | Protects the shared counter using a critical section |
+| `atomic.c` | Uses an atomic operation to update the shared counter |
+| `barrier.c` | Demonstrates barrier synchronization between threads |
+| `semaphore.c` | Protects a shared counter using a semaphore |
+| `compare_sync.c` | Compares synchronization mechanisms for different thread counts |
+
+## 5. Compilation and Execution
+Use the compiler command required by each source file and your lab instructions. For an OpenMP source file, the typical command is:
+
+```bash
+gcc -fopenmp filename.c -o filename
 ```
 
-## 13. Conclusion
+Run the programs:
 
-This experiment demonstrates that VM and container performance can differ depending on the workload.
+```bash
+./race
+./critical
+./atomic
+./barrier
+./semaphore
+./compare_sync
+```
 
-The measured results show different behavior for CPU, memory, disk, network, and API workloads. Containers share the host kernel and generally introduce a different overhead profile compared with a full virtual machine, while the actual performance depends on the workload and configuration.
+## 6. Program Outputs
 
-The scalability tests also show that increasing CPU threads or API concurrency does not necessarily produce a linear increase in performance.
+The terminal screenshots are embedded below. The same original image files are also stored in the `screenshots/` folder.
 
-The experiment was performed using the available VM resources, so the results should be interpreted as measurements for this specific environment rather than universal performance values.
+### 6.1 Race Condition
+Observed output: `Counter=6135572`. The count is below the expected 10,000,000 because concurrent updates can be lost when the shared counter is not protected.
+
+![Race condition output](screenshots/race.png)
+
+### 6.2 Critical Section
+Observed output: `Counter=10000000`.
+
+![Critical section output](screenshots/critical.png)
+
+### 6.3 Atomic Operation
+Observed output: `Counter=10000000`.
+
+![Atomic operation output](screenshots/atomic.png)
+
+### 6.4 Barrier Synchronization
+Both threads print before and after the barrier. The order in which the threads print can vary between runs.
+
+![Barrier synchronization output](screenshots/barrier.png)
+
+### 6.5 Semaphore
+Observed output: `Counter=200000`.
+
+![Semaphore output](screenshots/semaphore.png)
+
+### 6.6 Synchronization Performance Comparison
+This screenshot contains the comparison output for 1, 2, 4, and 8 threads.
+
+![Synchronization comparison output](screenshots/compare_sync.png)
+
+## 7. Benchmark Results
+
+Values transcribed from the uploaded `compare_sync` terminal screenshot. Execution times are in seconds.
+
+| Mechanism | Threads | Final Count | Correctness | Time (s) |
+|---|---:|---:|---|---:|
+| None | 1 | 10,000,000 | Correct | 0.0224 |
+| Critical | 1 | 10,000,000 | Correct | 0.1599 |
+| Atomic | 1 | 10,000,000 | Correct | 0.0823 |
+| Lock | 1 | 10,000,000 | Correct | 0.1582 |
+| None | 2 | 7,937,166 | Incorrect | 0.0170 |
+| Critical | 2 | 10,000,000 | Correct | 0.3158 |
+| Atomic | 2 | 10,000,000 | Correct | 0.0999 |
+| Lock | 2 | 10,000,000 | Correct | 0.2951 |
+| None | 4 | 3,396,783 | Incorrect | 0.0132 |
+| Critical | 4 | 10,000,000 | Correct | 0.3291 |
+| Atomic | 4 | 10,000,000 | Correct | 0.1242 |
+| Lock | 4 | 10,000,000 | Correct | 0.3241 |
+| None | 8 | 5,118,080 | Incorrect | 0.0149 |
+| Critical | 8 | 10,000,000 | Correct | 0.2379 |
+| Atomic | 8 | 10,000,000 | Correct | 0.0974 |
+| Lock | 8 | 10,000,000 | Correct | 0.3132 |
+
+## 8. Graphs
+
+Both graphs are defined directly in this README using Mermaid; no separate graph folder is needed.
+
+### 8.1 Execution Time Comparison
+
+```mermaid
+xychart-beta
+    title "Execution time by mechanism and thread count"
+    x-axis ["None-1", "Critical-1", "Atomic-1", "Lock-1", "None-2", "Critical-2", "Atomic-2", "Lock-2", "None-4", "Critical-4", "Atomic-4", "Lock-4", "None-8", "Critical-8", "Atomic-8", "Lock-8"]
+    y-axis "Time (seconds)" 0 --> 0.35
+    bar [0.0224, 0.1599, 0.0823, 0.1582, 0.0170, 0.3158, 0.0999, 0.2951, 0.0132, 0.3291, 0.1242, 0.3241, 0.0149, 0.2379, 0.0974, 0.3132]
+```
+
+### 8.2 Execution Time of Synchronized Mechanisms
+
+```mermaid
+xychart-beta
+    title "Execution time by thread count"
+    x-axis ["1 thread", "2 threads", "4 threads", "8 threads"]
+    y-axis "Time (seconds)" 0 --> 0.35
+    line [0.1599, 0.3158, 0.3291, 0.2379]
+    line [0.0823, 0.0999, 0.1242, 0.0974]
+    line [0.1582, 0.2951, 0.3241, 0.3132]
+```
+
+Series order in the second graph: Critical, Atomic, Lock.
+
+## 9. Observations
+1. Without synchronization, the final counter is incorrect when multiple threads update the shared variable.
+2. Critical section, atomic operation, and lock produce the expected final count in the recorded comparison.
+3. In this run, Atomic had the lowest execution time among the three synchronized methods for each tested thread count.
+4. The unsynchronized version was fast, but its result was incorrect for 2, 4, and 8 threads.
+5. Execution times can vary depending on the system and runtime conditions.
+
+## 10. Conclusion
+The experiment demonstrates that synchronization is necessary when multiple threads access and modify shared data. The race condition produced incorrect results, while the tested synchronization mechanisms maintained the expected final count. In this recorded benchmark, the atomic operation had the lowest execution time among the correct synchronized approaches.
+
+## 11. Screenshot Files
+All six terminal screenshots are stored in `screenshots/`:
+- `race.png`
+- `critical.png`
+- `atomic.png`
+- `barrier.png`
+- `semaphore.png`
+- `compare_sync.png`
